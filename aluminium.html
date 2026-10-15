@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Crect width=%2216%22 height=%2216%22 rx=%223%22 fill=%22%23236b52%22/%3E%3C/svg%3E"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>鋁擠空間配置工作區</title>
+<link rel="stylesheet" href="assets/aluminium-82b4daf0d3.css">
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.min.js","three/addons/":"./node_modules/three/examples/jsm/","fflate":"./node_modules/fflate/esm/browser.js"}}</script>
+<script src="assets/meshes-07f30283d7.js"></script><script src="assets/core-6ce77261f8.js"></script>
+<script type="module" src="assets/aluminium-a68e091bcc.js"></script>
+</head>
+<body>
+<canvas id="viewport" aria-label="滿版三維空間工作區"></canvas>
+<header class="toolbar glass">
+  <a class="brand" href="index.html" title="回到合板計算機"><span class="brand-symbol">▦</span><span>鋁擠空間<span class="subbrand">配置工作區</span></span></a>
+  <div class="toolbar-actions"><button id="import" class="primary">匯入空間</button><button id="demo">示範房間</button><button id="fit">檢視全部 <kbd>F</kbd></button></div>
+  <span id="project-name">尚未匯入空間</span>
+  <button id="toggle-controls" aria-expanded="true" aria-controls="control-panel">參數</button><button id="toggle-results" aria-expanded="false" aria-controls="result-panel">結果</button><button id="help-open" aria-haspopup="dialog" title="貼皮與大圖尺寸怎麼算、怎麼用">說明</button>
+</header>
+<input id="room-file" type="file" accept=".step,.stp,.obj,.stl,.3mf" hidden>
+<aside id="control-panel" class="floating glass">
+  <div class="panel-heading drag-handle"><div><small>01 — 04</small><h1>從空間生成框架</h1></div><button id="close-controls" aria-label="收起參數">−</button></div>
+  <div class="panel-body">
+    <details open><summary>01　空間與牆面</summary>
+      <p class="muted">匯入完整幾何後，點選場景中的牆面或下方清單。</p>
+      <div class="pair"><label>OBJ／STL 單位<select id="import-unit"><option value="1">毫米</option><option value="10">公分</option><option value="1000">公尺</option></select></label><label>模型向上軸<select id="import-up"><option value="z">Z 向上（Fusion）</option><option value="y">Y 向上</option></select></label></div>
+      <p id="room-info" class="muted">STEP 與 3MF 依檔案單位讀取；檔案留在本機。</p>
+      <div class="wall-actions"><button id="select-all">全選牆面</button><button id="select-none">清除選取</button></div>
+      <div id="wall-list" class="wall-list"><p class="muted">尚無牆面</p></div>
+    </details>
+    <details open class="wall-mode-only"><summary>02　生成邊界</summary>
+      <label>編輯牆面<select id="active-wall"><option>先匯入空間</option></select></label>
+      <p id="wall-height-info" class="muted"></p>
+      <div class="pair"><label>起點 mm<input id="boundary-start" type="number" min="0" step="1"></label><label>終點 mm<input id="boundary-end" type="number" min="0" step="1"></label><label>底高 mm<input id="boundary-bottom" type="number" min="0" step="1"></label><label>頂高 mm<input id="boundary-top" type="number" min="0" step="1"></label></div>
+      <button id="flip-wall">翻轉這面牆的生成方向</button>
+      <p class="muted">橘線標示生成範圍。門窗缺口自動保留。高度以該牆底部為零。</p>
+    </details>
+    <details open><summary>03　公規板</summary>
+      <p class="muted">公規板跨場地共用；鋁擠每場依板子裁切，單根不超過 3 m。</p>
+      <div class="pair"><label>板寬 mm<input data-param="panelWidth" type="number" step="0.5" min="170"></label><label>每框片數<select data-param="framePanels" data-text><option value="auto" selected>自動（2／3 片混用）</option><option value="2">每框 2 片</option><option value="3">每框 3 片</option></select></label><label>上板高 mm<input data-param="upperHeight" type="number" step="0.5" min="60"></label><label>下板高 mm<input data-param="lowerHeight" type="number" step="0.5" min="90"></label></div>
+      <label class="check"><input id="auto-height" type="checkbox"> 板高依上下預留自動計算（公規已定案為 1129／1149；只有試算新公規時才勾）</label>
+      <button id="recommend">依原板推薦公規</button>
+      <div id="recommendations" class="recommendations"></div>
+    </details>
+    <details open><summary>04　裝配參數</summary>
+      <div class="pair"><label>上方腳墊（頂天）<select data-param="topFoot" data-text><option value="swivel" selected>活動 D60×M10×100</option><option value="fixed">固定 35×M10×150</option></select></label><label>下方腳墊（立地）<select data-param="bottomFoot" data-text><option value="swivel">活動 D60×M10×100</option><option value="fixed" selected>固定 35×M10×150</option></select></label></div>
+      <div id="sliders"></div>
+      <label>現成 M10 螺桿長度 mm（逗號分隔，延長桿只從這裡挑，不現場裁切）<input data-param="rodLengths" data-text type="text" inputmode="numeric"></label>
+      <p class="muted">依範例 STEP：兩根 3030 立柱夾在上下 3030 之間，3060 夾在立柱間，中心為上下板分界；每片上板一片上壓板。</p>
+    </details>
+    <details open><summary>05　門窗</summary>
+      <p class="muted">CAD 的「門／隱藏門／窗」標記會自動帶入；在 3D 點板可新增或換邊。門寬留空用預設（標記寬，碰到內角自動停在垂直板前）；填數字則鉸鏈側不動、從鎖側伸縮。</p>
+      <div id="opening-list" class="wall-list"><p class="muted">尚無門窗</p></div>
+    </details>
+    <div class="solve-actions"><button id="solve" class="primary">自動求解配置</button><label class="check"><input id="live" type="checkbox" checked> 參數改變後自動更新</label></div>
+    <details><summary>圖層與專案</summary>
+      <label class="check"><input id="show-room" type="checkbox" checked> 空間模型</label><label class="check"><input id="show-panels" type="checkbox" checked> 木板</label><label class="check"><input id="show-hooks" type="checkbox" checked> 掛具</label><label class="check"><input id="show-labels" type="checkbox" checked> 框編號</label>
+      <button id="save-project">儲存參數與門窗</button><button id="load-project">載入配置設定</button><input id="project-file" type="file" accept=".json" hidden>
+      <p class="muted">修改會自動存在這台電腦的瀏覽器（不上傳），下次打開直接回到上次的模型與設定；每個模型各記各的。設定檔用來交給客戶或換電腦。</p><button id="clear-autosave">清除這台電腦的自動存檔</button>
+      <p class="muted">設定檔不含模型。請一併提供原始 STEP；可先載入設定，再匯入模型。檔案只在瀏覽器內處理，不會上傳。</p>
+    </details>
+  </div>
+</aside>
+<div id="empty-state" class="empty glass"><small>空間先行 · 參數生成</small><h2>把房間放進來，<br>再決定怎麼搭。</h2><p>選牆面、限制範圍，系統比較公規尺寸，<br>將特規零件集中在邊端。</p><button id="empty-import" class="primary">匯入 STEP / OBJ / STL / 3MF</button><button id="empty-demo">先試有門洞的示範房間</button></div>
+<nav class="view-tools glass" aria-label="視角工具"><button id="view-iso">立體</button><button id="view-front">正視牆面</button><button id="view-top">俯視</button><button id="projection" aria-pressed="false">切換透視</button></nav>
+<section id="result-panel" class="result-panel glass collapsed">
+  <div id="result-resize" class="resize-handle" role="separator" aria-label="拖曳調整結果高度" tabindex="0"></div>
+  <div class="result-heading"><button id="expand-results" aria-expanded="false">展開配置結果 ↑</button><div id="metrics" class="metrics"><span>等待空間與生成範圍</span></div><div class="result-actions"><input id="sheet-scope" class="sheet-scope" type="text" placeholder="料單範圍：全場" aria-label="料單範圍" title="空白＝全場。只出部分料單：填框或段落編號，例「R4-F1 R4-F2 R5 R6-F1」（測試牆）；開頭加「除」＝其餘全部，例「除 R4 R5 R6」（之後補料）。只影響匯出的 CSV／PDF。"><select id="len-unit" class="len-select" aria-label="長度單位" title="結果與料單的長度單位；參數輸入一律 mm"><option value="mm" selected>mm</option><option value="cm">cm</option><option value="in">英吋</option></select><select id="len-digits" class="len-select" aria-label="小數位數" title="長度顯示到小數第幾位（mm 的現場位置固定取整數）"><option value="1" selected>小數 1 位</option><option value="2">小數 2 位</option></select><button id="export-sheet" disabled>匯出料單 CSV</button><button id="export-pdf" disabled>匯出料單 PDF</button><button id="export-skin" disabled title="只有貼皮／大圖尺寸（每組、每扇門、每面牆的木板正面，有縫與沒縫），直接給貼皮師傅或大圖輸出廠">貼皮 PDF</button><select id="skin-scale" class="len-select" aria-label="貼皮圖比例" title="貼皮圖比例：1:10 全部牆一個檔；1:1 每面牆一個檔，打包成 ZIP"><option value="10" selected>貼皮圖 1:10</option><option value="1">貼皮圖 1:1</option></select><button id="export-skin-svg" disabled title="匯出貼皮圖 SVG 給 Illustrator：縫、牆體、標註三個子圖層，尺寸照比例">貼皮圖 SVG</button><button id="export-model" disabled>匯出 3MF</button></div></div>
+  <div class="result-body"><div class="result-tabs"><button data-tab="overview" class="active">框與門窗</button><button data-tab="materials">下料清單</button><button data-tab="plywood">合板裁切</button></div>
+  <div id="result-overview"></div><div id="result-materials" hidden></div><div id="result-plywood" hidden></div></div>
+</section>
+<div id="legend" class="legend glass" aria-label="顏色說明"><span><i style="background:#d6c3a1"></i>公規板</span><span><i style="background:#d7a05c"></i>特規板／側封板</span><span><i style="background:#7fa6c9"></i>隱藏門／維修窗</span><span><i style="background:#526861"></i>鋁擠</span><span><i style="background:#8d9a94"></i>配件</span></div>
+<dialog id="help" class="help" aria-labelledby="help-title">
+  <div class="help-head"><h2 id="help-title">說明</h2><button id="help-close">關閉</button></div>
+  <div class="help-main">
+    <nav class="help-tabs" role="tablist" aria-label="說明分頁">
+      <button role="tab" data-help="overview" aria-selected="true">這個工具在做什麼</button>
+      <button role="tab" data-help="start" aria-selected="false">開始使用：步驟</button>
+      <button role="tab" data-help="screen" aria-selected="false">畫面與操作</button>
+      <button role="tab" data-help="params" aria-selected="false">參數</button>
+      <button role="tab" data-help="openings" aria-selected="false">門窗</button>
+      <button role="tab" data-help="output" aria-selected="false">結果與匯出</button>
+      <button role="tab" data-help="site" aria-selected="false">叫料與現場施工</button>
+      <button role="tab" data-help="skin" aria-selected="false">貼皮與大圖</button>
+    </nav>
+    <div id="help-body" class="help-body">
+      <section class="help-page" data-page="overview" role="tabpanel">
+        <section><h3>這個工具在做什麼</h3>
+          <p>場地要做假牆：牆面是<b>木板</b>，背後用<b>鋁擠框</b>撐起來，框上下用頂撐頂住天花板（梁）和地板。</p>
+          <p>你在 Fusion 把場地建好模，畫出要包的牆在哪裡、門窗在哪裡，匯入這裡。工具會自動：</p>
+          <ol>
+            <li>沿著每一段牆排木板：公規板盡量用滿，剩下的餘數集中成特規板，放在轉角那一端。</li>
+            <li>把相鄰的板 2～3 片分成一組，每組做一個鋁擠框；框寬盡量統一，讓鋁擠長度種類越少越好。</li>
+            <li>算出每一組要的頂撐、掛具、五金和門窗鉸鏈。</li>
+            <li>產出一整份單子：給工廠出料（鋁擠料號、木板裁切），給工班組裝與放樣（組裝表、現場定位），給貼皮和大圖輸出（貼皮尺寸）。</li>
+          </ol>
+          <p class="help-note">木板是<b>公規</b>，跨場地重複使用；鋁擠每個場地照現場裁切，單支不超過 3 m，裝好後固定在場地不拆。</p>
+          <p>模型和設定只在你的瀏覽器裡處理，不會上傳。</p></section>
+        <section><h3>常用名詞</h3>
+          <dl class="help-terms">
+            <dt>段落 R1、R2…</dt><dd>一段直的牆。編號沿著你畫的鋁擠路徑方向排。</dd>
+            <dt>組（框）R7-F1</dt><dd>一個鋁擠框和掛在上面的那幾片板。F 編號沿段落方向遞增。</dd>
+            <dt>上板／下板</dt><dd>每一欄板分上下兩片，中間由 3060 中料撐住。</dd>
+            <dt>公規板／特規板</dt><dd>公規是固定尺寸、跨場地共用；特規是這個場地才裁的，通常在轉角或門窗旁邊。</dd>
+            <dt>料號 A、B、C…</dt><dd>同一種型材、同一個長度用同一個字母。叫料時請廠商把字母寫在每支料上，現場照字母挑料。</dd>
+            <dt>內角／外角／開放端</dt><dd>兩面牆夾著室內是內角；牆角凸向室內是外角；牆沒接到別的牆是開放端，會加側封板收邊。</dd>
+            <dt>基準轉角</dt><dd>相鄰兩段墨線（框背面線）的交點，現場所有位置都從這裡量。</dd>
+            <dt>框頂</dt><dd>全場框頂一樣高，由全場最低的梁底決定。</dd>
+          </dl></section>
+      </section>
+
+      <section class="help-page" data-page="start" role="tabpanel" hidden>
+        <section><h3>從模型到單子，照這個順序做</h3>
+          <ol class="help-steps">
+            <li><b>在 Fusion 準備模型。</b>
+              <ul>
+                <li>房間照實際建模：牆、地板、天花板、梁。頂撐會量到這些面，梁漏畫就會算錯。</li>
+                <li>用草圖畫出要包牆的位置，薄擠出成曲面本體，本體名稱要含「<b>鋁擠路徑</b>」。線只要畫在大概位置：工具會把每段轉成互相垂直，靠近牆的線會自動貼到「型材背面離牆」的距離。不要包的地方（例如樓梯口）就不要畫。</li>
+                <li>門窗用本體標出位置，名稱含「<b>隱藏門</b>」是隱藏門、含「<b>門</b>」是逃生門（留開口）、含「<b>窗</b>」是維修窗。</li>
+                <li>房間和這些本體一起匯出成 STEP。</li>
+              </ul></li>
+            <li><b>匯入。</b>按上方「匯入空間」選 STEP。左邊「01 空間與牆面」會列出每一段 R 的長度、兩端是內角、外角還是開放端；3D 裡的橘線是段落位置。</li>
+            <li><b>有設定檔就載入。</b>左邊最下面「圖層與專案」→「載入配置設定」。先載設定、或先匯入模型都可以。同一台電腦會自動存檔，下次打開直接回到上次的狀態。</li>
+            <li><b>檢查門窗。</b>CAD 標記會自動帶入。要改就在 3D 的木板上按右鍵；門寬在「05 門窗」填。詳見「門窗」分頁。</li>
+            <li><b>調參數。</b>大多照預設就好。改了會自動重排（「參數改變後自動更新」有勾時）。每個參數的意思見「參數」分頁。</li>
+            <li><b>看結果。</b>按下方「展開配置結果」。有排不出來的地方，會寫在「框與門窗」分頁最上面和最下方的狀態列，照著改參數或門窗。</li>
+            <li><b>先做測試牆（建議）。</b>在結果列的「料單範圍」填幾組，例如一兩段牆，只出這幾組的料單，先做起來驗證。</li>
+            <li><b>匯出。</b>料單 PDF 給工廠和工班（按下去先勾要印哪些，給木工的按「木工裁切」），貼皮 PDF 給貼皮師傅和大圖輸出，CSV 用 Excel 開，3MF 是 3D 模型。</li>
+            <li><b>存設定。</b>「儲存參數與門窗」存成 JSON 檔，要交給別人或換電腦用。設定檔不含模型，要連同原始 STEP 一起給。</li>
+            <li><b>到現場。</b>照料單 PDF 的「現場定位」彈墨線、立框，照「組裝表」組框。詳見「叫料與現場施工」分頁。</li>
+          </ol></section>
+        <section><h3>沒有畫鋁擠路徑的模型（牆面模式）</h3>
+          <p>OBJ、STL、3MF，或是沒有「鋁擠路徑」本體的 STEP，會改用牆面模式：</p>
+          <ul>
+            <li>在「01 空間與牆面」勾選要做的牆（或直接點 3D 裡的牆面）。</li>
+            <li>在「02 生成邊界」調每面牆的起點、終點、底高、頂高；橘線是生成範圍。方向反了按「翻轉這面牆的生成方向」。</li>
+            <li>OBJ／STL 沒有單位，要在 01 選對單位和向上軸。</li>
+          </ul>
+          <p>「示範房間」就是用這個模式，可以先拿它熟悉操作。</p></section>
+      </section>
+
+      <section class="help-page" data-page="screen" role="tabpanel" hidden>
+        <section><h3>畫面上各區</h3>
+          <dl class="help-terms">
+            <dt>上方工具列</dt><dd>匯入空間、示範房間、檢視全部；右邊是專案名稱、「參數」「結果」面板開關，和這個說明。左上的標誌回到合板計算機。</dd>
+            <dt>左邊參數面板</dt><dd>01～05 和「圖層與專案」。按住標題列可以拖曳移動，按「−」收起。</dd>
+            <dt>右上視角</dt><dd>立體、正視牆面、俯視，以及透視／正交切換。</dd>
+            <dt>左下圖例</dt><dd>3D 裡各種顏色代表什麼：公規板、特規板與側封板、門窗、鋁擠。</dd>
+            <dt>下方結果面板</dt><dd>數字列、料單範圍、單位與匯出按鈕；展開後有「框與門窗」「下料清單」「合板裁切」三個分頁。拖曳面板上緣可以調高度。</dd>
+            <dt>最下方狀態列</dt><dd>目前在做什麼、哪裡出錯，都寫在這裡。</dd>
+          </dl></section>
+        <section><h3>滑鼠與鍵盤</h3>
+          <div class="help-scroll"><table><thead><tr><th>操作</th><th>效果</th></tr></thead><tbody>
+            <tr><td>左鍵拖曳</td><td>旋轉視角</td></tr>
+            <tr><td>右鍵拖曳</td><td>平移</td></tr>
+            <tr><td>滾輪</td><td>縮放</td></tr>
+            <tr><td>滑鼠停在零件上</td><td>顯示這個零件的名稱與尺寸</td></tr>
+            <tr><td>左鍵點零件</td><td>結果面板跳到它的料單行，並標出它那一組框的組裝行；3D 亮著這一組。點空白處取消。</td></tr>
+            <tr><td>右鍵點木板</td><td>門窗選單：設成隱藏門、維修窗或一般牆板</td></tr>
+            <tr><td>滑鼠移到料單某一行</td><td>3D 裡對應的零件亮起來</td></tr>
+            <tr><td><kbd>F</kbd></td><td>檢視全部</td></tr>
+            <tr><td><kbd>Ctrl</kbd> + <kbd>Z</kbd></td><td>復原上一步門窗修改</td></tr>
+            <tr><td><kbd>Esc</kbd></td><td>關掉右鍵選單或這個說明</td></tr>
+          </tbody></table></div></section>
+        <section><h3>圖層與專案</h3>
+          <ul>
+            <li>可以分別隱藏空間模型、木板、掛具、框編號，方便看裡面的鋁擠。</li>
+            <li>修改會自動存在這台電腦的瀏覽器，每個模型各記各的；「清除這台電腦的自動存檔」可以重來。</li>
+            <li>「儲存參數與門窗」「載入配置設定」用來交給別人或換電腦。</li>
+          </ul></section>
+      </section>
+
+      <section class="help-page" data-page="params" role="tabpanel" hidden>
+        <p class="help-lead">參數一律用 mm 輸入。改了會自動重排；沒勾「參數改變後自動更新」時，要按「自動求解配置」。</p>
+        <section><h3>01 空間與牆面</h3>
+          <dl class="help-terms">
+            <dt>OBJ／STL 單位、模型向上軸</dt><dd>只影響 OBJ／STL。STEP 和 3MF 照檔案本身的單位讀；Fusion 是 Z 向上。</dd>
+            <dt>段落／牆面清單</dt><dd>路徑模式列出每一段 R；牆面模式在這裡勾選要做的牆。</dd>
+          </dl></section>
+        <section><h3>02 生成邊界（只有牆面模式）</h3>
+          <p>每面牆的起點、終點、底高、頂高，橘線是生成範圍，高度以那面牆的底部為零；門窗缺口會自動保留。「翻轉這面牆的生成方向」改排板的方向。路徑模式不用這一區，段落由鋁擠路徑決定。</p></section>
+        <section><h3>03 公規板</h3>
+          <dl class="help-terms">
+            <dt>板寬、上板高、下板高</dt><dd>公規板尺寸。公規跨場地共用，定案後就不要再改；場地比較矮時用補板處理。</dd>
+            <dt>每框片數</dt><dd>一組框掛幾欄板。「自動」會 2、3 片混用，讓組數最少、每支鋁擠不超過 3 m。</dd>
+            <dt>板高依上下預留自動計算</dt><dd>只有在試算新公規時才勾。</dd>
+            <dt>依原板推薦公規</dt><dd>依原板尺寸反推公規候選，比較框頂高度和特規數，點選就套用。梁太低、框頂超出時用它降板高。</dd>
+          </dl></section>
+        <section><h3>04 裝配參數</h3>
+          <dl class="help-terms">
+            <dt>上方腳墊、下方腳墊</dt><dd>頂天花板、立地的頂撐各用哪一款腳墊。</dd>
+            <dt>板底離地</dt><dd>下板底邊離地面多高。</dd>
+            <dt>下板突出框底</dt><dd>下板往下超出鋁框底的長度，用來遮住框底和腳墊。</dd>
+            <dt>木板水平縫隙</dt><dd>左右相鄰兩片板之間的縫。</dd>
+            <dt>長掛具、短掛具長度</dt><dd>板背面的掛具。放得下就用長的，窄板用短的，再放不下就做特規長度。</dd>
+            <dt>框現場滑動餘量</dt><dd>掛具兩端到立柱留的空間，讓框在現場可以左右挪一點對位（每側）。</dd>
+            <dt>牆板厚度</dt><dd>木板的厚度。</dd>
+            <dt>型材背面離牆</dt><dd>鋁框背面到後面那道牆的距離；要大於腳座固定塊凸出的量。</dd>
+            <dt>最窄特規板</dt><dd>特規板最窄能多窄。餘數比這個還窄時，會拿掉一片公規，合成一片比較寬的特規。</dd>
+            <dt>板頂到天花板最小預留</dt><dd>板頂到最低梁底至少要留的空間。</dd>
+            <dt>螺桿調整餘量</dt><dd>頂撐挑延長桿時多留的長度，寧長勿短。</dd>
+            <dt>合板鋸路</dt><dd>裁合板時鋸片吃掉的寬度，排裁切圖用。</dd>
+            <dt>現成 M10 螺桿長度</dt><dd>手邊買得到的螺桿長度，用逗號分隔。延長桿只從這些挑，現場不裁。</dd>
+          </dl></section>
+        <section><h3>05 門窗</h3><p>列出目前所有門窗，可以填門寬。詳見「門窗」分頁。</p></section>
+      </section>
+
+      <section class="help-page" data-page="openings" role="tabpanel" hidden>
+        <section><h3>三種門窗</h3>
+          <dl class="help-terms">
+            <dt>隱藏門</dt><dd>一片門板，正面跟牆板齊平，往室內開。鉸鏈鎖在旁邊那組框的立柱上。</dd>
+            <dt>維修窗</dt><dd>上板或下板其中一排換成窗扇。窗洞碰到兩欄以上，就做左右對開兩扇。</dd>
+            <dt>逃生門</dt><dd>留開口、不做板，兩側加門套收邊。只能從 CAD 標記帶入。</dd>
+          </dl></section>
+        <section><h3>怎麼設定</h3>
+          <ol class="help-steps">
+            <li><b>CAD 標記自動帶入。</b>匯入時，名稱含「隱藏門」「門」「窗」的本體會變成對應的門窗。</li>
+            <li><b>在 3D 木板上按右鍵</b>：可以設成一般牆板、隱藏門（鉸鏈在左或右）、維修窗（鉸鏈在左或右，做在你點的那一排）。「左右」都是站在室內面對牆看。</li>
+            <li><b>還原這段的 CAD 標記</b>：右鍵選單最下面，改亂了可以整段回到 CAD 的設定。</li>
+            <li><b>門寬</b>：在「05 門窗」的清單填。留空就用標記的寬度（碰到內角會自動停在隔壁牆的板前面）；填數字就是指定門寬，鉸鏈那一側不動，從鎖的那一側伸縮。維修窗照板格，不能填寬度。</li>
+            <li><b>改錯了</b>：按 <kbd>Ctrl</kbd> + <kbd>Z</kbd> 一步一步復原。</li>
+          </ol>
+          <p>門窗排不下時（例如鎖側只剩一條放不下板的窄縫），狀態列會直接告訴你門寬可以填多少。</p></section>
+      </section>
+
+      <section class="help-page" data-page="output" role="tabpanel" hidden>
+        <section><h3>底部數字列</h3>
+          <p>叫料最常看的總數：框頂高度、框組數、鋁擠種類與支數、公規板、特規板、原板張數、門窗、側封板。重新計算後有變動的數字會閃一下。</p></section>
+        <section><h3>結果面板的三個分頁</h3>
+          <dl class="help-terms">
+            <dt>框與門窗</dt><dd>排不出來的原因、每組框的片數與框寬、現場定位、門窗開口、側封板鑽孔位置、框頂到天花板的收邊尺寸。</dd>
+            <dt>下料清單</dt><dd>跟匯出的料單 CSV 內容一樣。</dd>
+            <dt>合板裁切</dt><dd>每張原板怎麼裁。滑鼠移到原板上，3D 會亮出從這張裁出來的板。</dd>
+          </dl></section>
+        <section><h3>匯出</h3>
+          <dl class="help-terms">
+            <dt>匯出料單 CSV</dt><dd>用 Excel 開，可以自己加欄位或排序。</dd>
+            <dt>匯出料單 PDF</dt><dd>先跳出勾選視窗，勾要印哪些、選長度單位，再按「列印／存成 PDF」，印表機選「另存為 PDF」。全部勾的內容：概要數字、平面圖，一、五金，二、木板，三、合板裁切，四、鋁擠（料號），五、頂撐做法，六、組裝表，七、現場定位，八、貼皮／大圖。<ul><li><b>木工裁切</b>：只勾「木板：尺寸與數量」和「合板裁切」。木板表只剩品名、尺寸、片數、原板張數，特規板寫零件編號；掛具孔位、鉸鏈、治具都不印。</li><li>「木板：孔位、掛具、鉸鏈、治具」勾了會連尺寸一起印（加工要對得到是哪片板）。</li><li>只勾一部分時，節的編號照印出來的重排，標題和檔名寫印了哪幾節。上次勾的會記在這台電腦。</li></ul></dd>
+            <dt>貼皮 PDF</dt><dd>只有貼皮與大圖尺寸，直接給貼皮師傅或輸出廠。見「貼皮與大圖」分頁。</dd>
+            <dt>貼皮圖 SVG</dt><dd>每面牆的板面、縫的位置和寬度，用 Illustrator 打開做大圖。旁邊選比例：1:10 全部牆一個檔；1:1 每面牆一個檔，打包成 ZIP。見「貼皮與大圖」分頁。</dd>
+            <dt>匯出 3MF</dt><dd>全部零件的 3D 模型，可以拿回 CAD 檢查。</dd>
+          </dl></section>
+        <section><h3>料單範圍：只出一部分</h3>
+          <ul>
+            <li>空白：全場。</li>
+            <li>填框或段落編號：只算那幾組，例如 <code>R4-F1 R4-F2</code>，或整段 <code>R5</code>。寫成「R6 F1」也可以。</li>
+            <li>開頭加「除」：算其餘全部，例如 <code>除 R4 R5</code>，之後補料用。</li>
+            <li>鋁擠料號照全場排，所以部分料單的字母會跳號；同一個字母在每一批都是同一個長度。測試牆加上其餘，數量剛好等於全場。</li>
+            <li>現場定位會保留全場的墨線，因為轉角要靠相鄰段的線才定得準。</li>
+          </ul></section>
+        <section><h3>長度單位與小數</h3>
+          <p>可以切 mm、cm、英吋，小數 1 位或 2 位。只換結果與料單，參數輸入一律 mm。螺絲、腳墊、螺桿、掛具、板厚這些現成品的規格維持 mm。英吋給工廠裁料請用小數 2 位。</p></section>
+      </section>
+
+      <section class="help-page" data-page="site" role="tabpanel" hidden>
+        <section><h3>叫料</h3>
+          <ul>
+            <li><b>鋁擠</b>：照料單「鋁擠」那一節叫，請廠商把料號字母寫在每一支料上。</li>
+            <li><b>木板</b>：照「木板」和「合板裁切」裁，給木工時勾選視窗按「木工裁切」；公規板第一次做好之後跨場地共用，之後只裁特規。</li>
+            <li><b>五金</b>：照「五金」買，已經分成結構件、頂撐、螺絲螺帽、門窗四組，一組一組對。</li>
+            <li><b>頂撐</b>：「頂撐做法」寫每一種間隙用哪款腳墊、要不要加延長桿。</li>
+          </ul></section>
+        <section><h3>放樣：現場定位</h3>
+          <ol class="help-steps">
+            <li>所有位置都從<b>基準轉角</b>量起：相鄰兩段墨線（框背面線）的交點。</li>
+            <li>先把全場的墨線一次彈好，用表上的「墨線長」驗線。</li>
+            <li>照表上「框外緣距轉角」「門窗距轉角」標出每一組框和門窗的位置；「框背面離後牆」用來確認離牆距離。</li>
+            <li>高度用雷射水平儀打框頂線，腳墊調到框頂碰線。</li>
+          </ol></section>
+        <section><h3>組裝：組裝表</h3>
+          <ul>
+            <li>每一組框一行：上橫、下橫、左右立柱、中料各用哪個料號，照字母挑料，不用量長度。</li>
+            <li>同一行寫這組要的角件、掛具、上壓板數量、頂撐，以及掛哪幾片板（特規板寫編號）。</li>
+            <li>同一組的頂撐有的要加延長桿、有的不用時，會逐支寫出離基準轉角多遠。</li>
+          </ul></section>
+        <section><h3>先做測試牆</h3>
+          <p>用「料單範圍」先出幾組的料單，做起來確認尺寸、組法都沒問題，再用「除 …」出其餘的補料單。</p></section>
+      </section>
+
+      <section class="help-page" data-page="skin" role="tabpanel" hidden><div id="help-skin"></div></section>
+    </div>
+  </div>
+</dialog>
+<dialog id="pdf-pick" class="pdf-pick" aria-labelledby="pdf-pick-title">
+  <div class="help-head"><h2 id="pdf-pick-title">料單 PDF：要印哪些</h2><button id="pdf-cancel">取消</button></div>
+  <div class="pdf-pick-body">
+    <div class="pdf-pick-row"><span>範圍</span><b id="pdf-scope">全場</b><small>（在結果列「料單範圍」改）</small></div>
+    <div class="pdf-pick-row"><span>長度單位</span><select id="pdf-unit" class="len-select" aria-label="PDF 長度單位"></select><select id="pdf-digits" class="len-select" aria-label="PDF 小數位數"></select></div>
+    <div class="pdf-pick-row"><span>快速選</span><button data-pdf-preset="all">全部（工廠、工班）</button><button data-pdf-preset="wood" title="只有木板尺寸與數量、原板張數、合板裁切圖">木工裁切</button></div>
+    <div id="pdf-parts" class="pdf-parts" role="group" aria-label="要印的內容"></div>
+  </div>
+  <div class="pdf-pick-foot"><small>節的編號照印出來的重排。</small><button id="pdf-print" class="primary">列印／存成 PDF</button></div>
+</dialog>
+<div id="tooltip" class="tooltip glass" hidden></div><div id="context-menu" class="context-menu glass" role="menu" hidden></div>
+<footer class="statusbar glass"><span id="status" role="status">匯入空間以開始。或先試示範房間。</span><span>點零件看料單 · 右鍵點木板設門窗 · Ctrl+Z 復原 · 拖曳旋轉／右鍵拖曳平移 · 滾輪縮放</span></footer>
+<div id="busy" class="busy" hidden><div class="glass"><span class="spinner"></span><strong id="busy-text">讀取空間幾何…</strong></div></div>
+<script>if(location.protocol==='file:'){document.getElementById('status').textContent='請先雙擊專案中的「啟動配置器.cmd」，使用本機工作區開啟。';document.querySelector('#empty-state p').textContent='請雙擊「啟動配置器.cmd」啟動本機幾何服務。';}</script>
+</body>
+</html>

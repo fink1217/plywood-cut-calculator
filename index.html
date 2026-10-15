@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Crect width=%2216%22 height=%2216%22 rx=%223%22 fill=%22%23236b52%22/%3E%3C/svg%3E">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="計算合板裁切張數、利用率與可施工的貫穿裁切配置。">
+  <title>合板裁切計算機</title>
+  <link rel="stylesheet" href="assets/styles-1c3f6b98d3.css">
+  <script defer src="assets/plywood-3ccf8e1858.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#calculator-form">跳到計算設定</a>
+  <nav style="padding:12px 5%;text-align:right" aria-label="計算工具"><a href="aluminium.html">開啟鋁擠牆面系統 →</a></nav>
+
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand-block">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 40 40" focusable="false">
+            <path d="M6 8h28v24H6z"></path>
+            <path d="M12 8v24M28 8v24M6 18h28"></path>
+          </svg>
+        </div>
+        <div>
+          <span class="header-kicker">MATERIAL PLANNER / 01</span>
+          <h1>合板裁切計算機</h1>
+          <p>從牆面到下料圖，先把每一毫米算清楚。</p>
+        </div>
+      </div>
+
+      <div class="display-controls">
+        <fieldset class="unit-switch" aria-label="尺寸顯示單位">
+          <legend>尺寸單位</legend>
+          <input type="radio" name="unit" id="unit-cm" value="cm"
+            form="calculator-form" checked>
+          <label for="unit-cm">cm</label>
+          <input type="radio" name="unit" id="unit-mm" value="mm"
+            form="calculator-form">
+          <label for="unit-mm">mm</label>
+          <input type="radio" name="unit" id="unit-in" value="in"
+            form="calculator-form">
+          <label for="unit-in" title="英吋">英吋</label>
+        </fieldset>
+        <label class="digits-switch" for="length-digits">小數
+          <select id="length-digits" form="calculator-form" aria-label="結果長度的小數位數">
+            <option value="1" selected>1 位</option>
+            <option value="2">2 位</option>
+          </select>
+        </label>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-shell">
+    <div class="workspace">
+      <aside class="control-column" aria-label="裁切設定">
+        <form id="calculator-form" class="control-panel" novalidate>
+          <section class="control-section control-section-first">
+            <div class="section-heading">
+              <span class="section-number">01</span>
+              <div>
+                <h2>設定需求</h2>
+                <p>描述牆面，分片可交給系統或自行指定。</p>
+              </div>
+            </div>
+
+            <fieldset class="segment-control mode-control">
+              <legend class="sr-only">計算模式</legend>
+              <input type="radio" name="mode" id="mode-wall" value="wall" checked>
+              <label for="mode-wall">牆面規劃</label>
+              <input type="radio" name="mode" id="mode-piece" value="piece">
+              <label for="mode-piece">指定板件</label>
+            </fieldset>
+
+            <div id="wall-fields" class="field-stack">
+              <div class="field-grid two-columns">
+                <div class="field">
+                  <label for="wall-width">牆面寬度 <span class="unit-text">cm</span></label>
+                  <input id="wall-width" type="number" value="300" min="0.1" step="0.1"
+                    inputmode="decimal" data-length-input required>
+                </div>
+                <div class="field">
+                  <label for="wall-height">牆面高度 <span class="unit-text">cm</span></label>
+                  <input id="wall-height" type="number" value="300" min="0.1" step="0.1"
+                    inputmode="decimal" data-length-input required>
+                </div>
+              </div>
+
+              <div class="field-grid two-columns">
+                <div class="field">
+                  <label for="wall-top-gap">上方預留 <span class="unit-text">cm</span></label>
+                  <input id="wall-top-gap" type="number" value="17" min="0" step="0.1"
+                    inputmode="decimal" data-length-input>
+                </div>
+                <div class="field">
+                  <label for="wall-bottom-gap">下方預留 <span class="unit-text">cm</span></label>
+                  <input id="wall-bottom-gap" type="number" value="3" min="0" step="0.1"
+                    inputmode="decimal" data-length-input>
+                </div>
+              </div>
+
+              <div id="wall-relation" class="formula-strip">
+                <span>牆高</span><b>−</b><span>上方預留</span><b>−</b><span>下方預留</span><b>=</b>
+                <strong>實際覆板高度 280 cm</strong>
+              </div>
+
+              <div class="split-settings">
+                <fieldset class="segment-control wall-split-control"
+                  aria-describedby="wall-split-help">
+                  <legend>分片方式</legend>
+                  <input type="radio" name="wall-split-mode" id="wall-split-auto"
+                    value="auto" checked>
+                  <label for="wall-split-auto">自動省料</label>
+                  <input type="radio" name="wall-split-mode" id="wall-split-vertical"
+                    value="vertical">
+                  <label for="wall-split-vertical">左右分</label>
+                  <input type="radio" name="wall-split-mode" id="wall-split-horizontal"
+                    value="horizontal">
+                  <label for="wall-split-horizontal">上下分</label>
+                  <input type="radio" name="wall-split-mode" id="wall-split-panelized"
+                    value="panelized">
+                  <label for="wall-split-panelized">上下排板</label>
+                </fieldset>
+                <p id="wall-split-help" class="field-help">
+                  左右分會產生垂直接縫；上下分會產生水平接縫。
+                </p>
+                <div id="wall-split-count-field" class="field" hidden>
+                  <label for="wall-split-count">指定總片數</label>
+                  <div class="input-with-suffix">
+                    <input id="wall-split-count" type="number" value="2" min="1" max="500"
+                      step="1" inputmode="numeric" aria-describedby="wall-split-help">
+                    <span>片</span>
+                  </div>
+                </div>
+                <div id="wall-panelized-fields" class="field-stack" hidden>
+                  <div class="field-grid two-columns">
+                    <div class="field">
+                      <label for="wall-panel-width">標準單片寬度 <span class="unit-text">cm</span></label>
+                      <input id="wall-panel-width" type="number" value="60" min="0.1"
+                        step="0.1" inputmode="decimal" data-length-input>
+                    </div>
+                    <div class="field">
+                      <label for="wall-side-tolerance">左右總公差 <span class="unit-text">cm</span></label>
+                      <input id="wall-side-tolerance" type="number" value="0" min="0"
+                        step="0.1" inputmode="decimal" data-length-input>
+                    </div>
+                  </div>
+                  <fieldset class="segment-control seam-mode-control">
+                    <legend>上下分界</legend>
+                    <input type="radio" name="wall-seam-mode" id="wall-seam-auto"
+                      value="auto" checked>
+                    <label for="wall-seam-auto">自動最佳化</label>
+                    <input type="radio" name="wall-seam-mode" id="wall-seam-manual"
+                      value="manual">
+                    <label for="wall-seam-manual">手動調整</label>
+                  </fieldset>
+                  <div id="wall-seam-adjustment" class="range-setting" hidden>
+                    <label for="wall-upper-height">上層高度 <span class="unit-text">cm</span></label>
+                    <input id="wall-upper-height-range" type="range" min="1" max="279"
+                      step="1" value="120" aria-label="上層高度拉桿">
+                    <div class="range-values">
+                      <input id="wall-upper-height" type="number" value="120" min="0.1"
+                        step="0.1" inputmode="decimal" data-length-input>
+                      <span id="wall-lower-derived">下層自動計算</span>
+                    </div>
+                  </div>
+                  <div class="range-setting">
+                    <label for="wall-side-bias">左右公差分配</label>
+                    <input id="wall-side-bias" type="range" min="0" max="100"
+                      step="1" value="50">
+                    <div class="range-labels">
+                      <span id="wall-left-tolerance">左 0 cm</span>
+                      <span id="wall-right-tolerance">右 0 cm</span>
+                    </div>
+                  </div>
+                  <p class="field-help">公差平均分配到左右；不足標準寬度的餘數會成為最右側例外板。</p>
+                </div>
+              </div>
+            </div>
+
+            <div id="piece-fields" class="field-stack" hidden>
+              <div class="field-grid two-columns">
+                <div class="field">
+                  <label for="piece-width">板片寬度 <span class="unit-text">cm</span></label>
+                  <input id="piece-width" type="number" value="60" min="0.1" step="0.1"
+                    inputmode="decimal" data-length-input>
+                </div>
+                <div class="field">
+                  <label for="piece-height">板片高度 <span class="unit-text">cm</span></label>
+                  <input id="piece-height" type="number" value="120" min="0.1" step="0.1"
+                    inputmode="decimal" data-length-input>
+                </div>
+              </div>
+              <div class="field">
+                <label for="piece-count">需求片數</label>
+                <div class="input-with-suffix">
+                  <input id="piece-count" type="number" value="4" min="1" max="500"
+                    step="1" inputmode="numeric">
+                  <span>片</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="control-section">
+            <div class="section-heading">
+              <span class="section-number">02</span>
+              <div>
+                <h2>原板條件</h2>
+                <p>預設比較台灣常見規格，也可限制單一尺寸。</p>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="board-spec">原板規格</label>
+              <select id="board-spec">
+                <option value="auto" selected>自動推薦省板材規格</option>
+                <option value="3x6">3 × 6 尺｜915 × 1830 mm</option>
+                <option value="3x7">3 × 7 尺｜915 × 2135 mm</option>
+                <option value="4x8">4 × 8 尺｜1220 × 2440 mm</option>
+                <option value="4x10">4 × 10 尺｜1220 × 3050 mm</option>
+                <option value="custom">自訂尺寸</option>
+              </select>
+            </div>
+
+            <div id="board-preview-card" class="board-preview-card">
+              <div class="board-miniature" aria-hidden="true">
+                <span></span>
+              </div>
+              <div>
+                <span class="preview-label">推薦／指定原板</span>
+                <strong id="board-preview-name">計算後自動推薦</strong>
+                <small id="board-preview-size">比較 3×6、3×7、4×8、4×10</small>
+              </div>
+            </div>
+
+            <div id="custom-board-fields" class="field-grid two-columns" hidden>
+              <div class="field">
+                <label for="custom-board-width">自訂寬度 <span class="unit-text">cm</span></label>
+                <input id="custom-board-width" type="number" value="122" min="0.1" step="0.1"
+                  inputmode="decimal" data-length-input>
+              </div>
+              <div class="field">
+                <label for="custom-board-height">自訂長度 <span class="unit-text">cm</span></label>
+                <input id="custom-board-height" type="number" value="305" min="0.1" step="0.1"
+                  inputmode="decimal" data-length-input>
+              </div>
+            </div>
+
+            <div class="field-grid two-columns">
+              <div class="field">
+                <label for="thickness-spec">板材厚度</label>
+                <select id="thickness-spec">
+                  <option value="1">1 分｜2.7 mm</option>
+                  <option value="2">2 分｜4 mm</option>
+                  <option value="2-full">2 分足｜5 mm</option>
+                  <option value="3">3 分｜7 mm</option>
+                  <option value="3-full">3 分足｜9 mm</option>
+                  <option value="4-full" selected>4 分足｜12 mm</option>
+                  <option value="5-full">5 分足｜15 mm</option>
+                  <option value="6-full">6 分足｜18 mm</option>
+                  <option value="7-full">7 分足｜24 mm</option>
+                  <option value="custom">自訂厚度</option>
+                </select>
+              </div>
+              <div class="field" id="custom-thickness-field" hidden>
+                <label for="custom-thickness">自訂厚度 mm</label>
+                <input id="custom-thickness" type="number" value="12" min="0.1" step="0.1"
+                  inputmode="decimal">
+              </div>
+            </div>
+          </section>
+
+          <section class="control-section">
+            <div class="section-heading">
+              <span class="section-number">03</span>
+              <div>
+                <h2>加工設定</h2>
+                <p>鋸路會真實扣入每道切縫。</p>
+              </div>
+            </div>
+
+            <div class="field-grid two-columns align-end">
+              <div class="field">
+                <label for="kerf">鋸路寬度 <span class="unit-text">cm</span></label>
+                <input id="kerf" type="number" value="0.3" min="0" step="0.1"
+                  inputmode="decimal" data-length-input>
+              </div>
+              <label class="switch-row" for="allow-rotation">
+                <span>
+                  <strong>允許旋轉 90°</strong>
+                  <small>提高原板利用率</small>
+                </span>
+                <input id="allow-rotation" type="checkbox" checked>
+                <span class="switch-track" aria-hidden="true"></span>
+              </label>
+            </div>
+
+            <details class="trim-details">
+              <summary>
+                <span>
+                  <strong>四周修邊</strong>
+                  <small>預設不修邊，需要時再設定</small>
+                </span>
+                <svg viewBox="0 0 20 20" aria-hidden="true">
+                  <path d="m5 7.5 5 5 5-5"></path>
+                </svg>
+              </summary>
+              <div class="trim-grid">
+                <div class="field">
+                  <label for="trim-top">上 <span class="unit-text">cm</span></label>
+                  <input id="trim-top" type="number" value="0" min="0" step="0.1"
+                    inputmode="decimal" data-length-input>
+                </div>
+                <div class="field">
+                  <label for="trim-right">右 <span class="unit-text">cm</span></label>
+                  <input id="trim-right" type="number" value="0" min="0" step="0.1"
+                    inputmode="decimal" data-length-input>
+                </div>
+                <div class="field">
+                  <label for="trim-bottom">下 <span class="unit-text">cm</span></label>
+                  <input id="trim-bottom" type="number" value="0" min="0" step="0.1"
+                    inputmode="decimal" data-length-input>
+                </div>
+                <div class="field">
+                  <label for="trim-left">左 <span class="unit-text">cm</span></label>
+                  <input id="trim-left" type="number" value="0" min="0" step="0.1"
+                    inputmode="decimal" data-length-input>
+                </div>
+              </div>
+            </details>
+          </section>
+
+          <div class="form-actions">
+            <button class="button button-primary" type="submit">
+              <svg viewBox="0 0 20 20" aria-hidden="true">
+                <path d="M4 4h12v12H4zM7 1v6M13 1v6M7 10h6M7 13h4"></path>
+              </svg>
+              計算省料方案
+            </button>
+            <button class="button button-quiet" type="reset">恢復預設</button>
+          </div>
+        </form>
+      </aside>
+
+      <section class="results-column" aria-label="計算結果">
+        <div class="results-toolbar">
+          <div class="live-status" role="status" aria-live="polite">
+            <span aria-hidden="true"></span>
+            <span id="calculation-status">已依目前數值完成計算</span>
+          </div>
+          <button id="print-button" class="button button-outline" type="button">
+            <svg viewBox="0 0 20 20" aria-hidden="true">
+              <path d="M5 7V2h10v5M5 15H3V8h14v7h-2M5 12h10v6H5z"></path>
+            </svg>
+            列印裁切單
+          </button>
+        </div>
+
+        <div id="error-output"></div>
+
+        <section id="results-content">
+          <div id="summary-output"></div>
+
+          <section id="wall-preview-section" class="result-section">
+            <div class="result-heading">
+              <div>
+                <span class="eyebrow">WALL ELEVATION</span>
+                <h2>牆面配置</h2>
+              </div>
+              <p id="wall-derived-note">系統會自動決定橫向與縱向分片。</p>
+            </div>
+            <figure id="wall-preview" class="wall-preview"></figure>
+            <div class="legend-row" aria-label="牆面圖例">
+              <span><i class="legend-swatch legend-piece"></i>板材</span>
+              <span><i class="legend-swatch legend-exception"></i>例外板</span>
+              <span><i class="legend-swatch legend-gap"></i>預留空間</span>
+              <span><i class="legend-line"></i>板片分隔</span>
+            </div>
+          </section>
+
+          <section class="result-section">
+            <div class="result-heading result-heading-with-legend">
+              <div>
+                <span class="eyebrow">CUTTING MAP</span>
+                <h2>原板裁切配置</h2>
+              </div>
+              <div class="legend-row compact" aria-label="原板圖例">
+                <span><i class="legend-swatch legend-normal"></i>原方向</span>
+                <span><i class="legend-swatch legend-rotated"></i>旋轉 90°</span>
+                <span><i class="legend-swatch legend-waste"></i>剩料／修邊</span>
+              </div>
+            </div>
+            <div id="sheet-plans" class="sheet-plans"></div>
+          </section>
+        </section>
+      </section>
+    </div>
+
+    <section class="reference-section" aria-labelledby="reference-title">
+      <div class="reference-intro">
+        <span class="eyebrow">MARKET REFERENCE</span>
+        <h2 id="reference-title">常用板材規格表</h2>
+        <p>尺寸採台灣市場常見標示；實際進貨仍應向供應商確認公差。</p>
+      </div>
+      <div class="reference-table-wrap">
+        <table class="reference-table">
+          <thead>
+            <tr><th>市場稱呼</th><th>實際寬度</th><th>實際長度</th><th>適用情境</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>3 × 6 尺</td><td>915 mm</td><td>1830 mm</td><td>小型板件、家具</td></tr>
+            <tr><td>3 × 7 尺</td><td>915 mm</td><td>2135 mm</td><td>窄幅立板</td></tr>
+            <tr><td>4 × 8 尺</td><td>1220 mm</td><td>2440 mm</td><td><strong>最常見</strong>／一般牆板</td></tr>
+            <tr><td>4 × 10 尺</td><td>1220 mm</td><td>3050 mm</td><td>高牆、長板件</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="thickness-reference">
+        <span>常用厚度</span>
+        <ul>
+          <li><b>1 分</b> 2.7 mm</li>
+          <li><b>2 分</b> 4 mm</li>
+          <li><b>3 分</b> 7 mm</li>
+          <li><b>3 分足</b> 9 mm</li>
+          <li><b>4 分足</b> 12 mm</li>
+          <li><b>5 分足</b> 15 mm</li>
+          <li><b>6 分足</b> 18 mm</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p>計算結果為估料與裁切規劃用途；下料前請以實際板材尺寸與設備鋸路複核。</p>
+    <nav aria-label="規格資料來源">
+      <a href="https://www.tpmea.org.tw/page/app1" target="_blank" rel="noreferrer">合板公會規格</a>
+      <a href="https://www.yslumber.com/pro3-5.html" target="_blank" rel="noreferrer">市場厚度規格</a>
+    </nav>
+  </footer>
+</body>
+</html>
